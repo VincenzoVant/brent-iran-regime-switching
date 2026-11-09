@@ -1,0 +1,13 @@
+# OS / editor
+.DS_Store
+.obsidian/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+.envrc
+.env
