@@ -11,3 +11,6 @@ venv/
 .ipynb_checkpoints/
 .envrc
 .env
+
+# Slide decks (shared outside git)
+*.pptx
