@@ -639,9 +639,12 @@ The user has to take part in this task: a Google login in the browser, the sandb
     - `rv` = Σ(100·Δln p)² over the week's trading days, where the first daily return uses the previous trading day's close.
   - `weekly_last(daily: pd.DataFrame, col: str, weeks) -> pd.Series`: the last observation within Sat–Fri, NaN if none
   - `weekly_mean(daily: pd.DataFrame, col: str, weeks) -> pd.Series`: the mean of observations within Sat–Fri, NaN if none
-  - `gdelt_weekly(gd: pd.DataFrame, weeks, switch: str = C.GDELT_SWITCH_DATE, splice: str | None = None) -> tuple[pd.DataFrame, int]` (`splice` only if the 2.0 splice is needed; see the box at the top of this task)
+  - `gdelt_weekly(gd: pd.DataFrame, weeks, switch: str = C.GDELT_SWITCH_DATE, splice: str | None = None) -> tuple[pd.DataFrame, dict[str, int]]` (`splice` only if the 2.0 splice is needed; see the box at the top of this task)
     - Columns `iran_share, iran_gdelt, iran_gdelt_geo, gdelt_days, iran_conflict, iran_coop, iran_tone, iran_goldstein`.
-    - The int is the number of daily rows dropped for being on the wrong side of the switch: `backfile` rows kept only if date < switch, `daily` (or `v2`) rows only if date ≥ switch.
+    - The dict counts: `wrong_side` = rows dropped for being on the wrong side of the switch (`backfile` kept only if date < switch, `daily` only if date ≥ switch); `stale_rows`/`stale_events` = rows with `feed == "stale"` (and their `n_events`) that were **merged into the daily feed** (`C.GDELT_STALE_POLICY = "merge"`, decided 2026-11-23: the Jan 1–5, 2020 stale rows are current news with a broken SQLDATE); `patched_days` = days filled from GDELT 2.0.
+    - **GDELT 2.0 outage patch [decided 2026-11-23].** New argument `v2: pd.DataFrame | None = None` (the `gdelt_v2_2025_daily` rows; `v2` and `stale` feeds both count). For the days in `C.GDELT_V2_PATCH_DAYS` (Jun 14 – Jul 1, 2025; 1.0 has no rows) the day's 1.0 values are replaced by 2.0 values, level-shifted per column: overlap = 2025 weeks fully covered by both feeds and not touching the patch days. Share columns (`iran_actor`, `iran_actor_geo`, `iran_conflict`, `iran_coop`): shift = mean over the overlap of (weekly log share 1.0 − weekly log share 2.0); the patched day's numerator = 2.0 numerator × exp(shift) × vol and its `articles_all` = 2.0 `articles_all` × vol, where vol = Σ 1.0 `articles_all` / Σ 2.0 `articles_all` over the overlap days (so the patched days carry 1.0-sized weight in their week). Tone and Goldstein: shift = mean overlap difference of the weekly means (levels), and the patched `tone_x` = (2.0 day mean + shift) × `tone_n` × vol (same for Goldstein). Raise `ValueError` if the overlap correlation of weekly log `iran_share` is < `C.GDELT_SPLICE_MIN_CORR`; for other columns a low correlation is printed, not fatal. Return the shifts and correlations as a third element (`dict[str, dict]`) for the notebook 02 table.
+    - **Empty weeks [decided 2026-11-23].** After patching, GDELT 2.0 only fills Jun 14, 2025 (GDELT was down Jun 15 – Jul 1 in both versions), so the week ending 2025-06-27 has `gdelt_days = 0`. With `C.GDELT_EMPTY_WEEK_POLICY = "locf"`, such a week takes **all** GDELT columns from the previous week and gets `gdelt_filled = 1` (else 0). Raise `ValueError` if more than `C.GDELT_MAX_EMPTY_WEEKS` consecutive weeks are empty, or if the first week is empty. Output columns gain `gdelt_filled`; `gdelt_days` keeps the true count (0). Test: a 3-week fixture with an empty middle week → the middle week equals week 1 with `gdelt_filled == 1`; two empty weeks in a row → `ValueError`.
+    - `weekly_panel.csv` gains the column `gdelt_filled` (int 0/1), listed in notebook 02's data table.
     - Shares are Σ numerator / Σ denominator per week (`articles_all` for all shares). `iran_conflict`, `iran_coop` are logs of shares. `iran_tone` = Σ `tone_x_articles_iran` / Σ `articles_iran_tone_n` and `iran_goldstein` likewise, both levels.
   - `aigpr_weekly(monthly: pd.DataFrame, weeks, lag_months: int = C.AIGPR_PUBLICATION_LAG_MONTHS) -> pd.Series`: month m is usable from the first Friday on or after the 1st of month m + 1 + `lag_months`
   - `intraday_weekly(daily: pd.DataFrame, weeks, first_week: str = C.HOURLY_SAMPLE_START) -> pd.DataFrame`
@@ -702,13 +705,15 @@ The user has to take part in this task: a Google login in the browser, the sandb
 
   def test_gdelt_share_split_and_drop():
       gd = pd.DataFrame({
-          "feed": ["backfile", "backfile", "daily", "daily"],
-          "date": pd.to_datetime(["2013-03-29", "2013-04-02", "2013-04-01", "2013-04-02"]),
-          "n_events": 1, "articles_all": [100, 999, 300, 100],
-          "articles_iran_actor": [1, 999, 3, 4], "articles_iran_actor_geo": [2, 999, 4, 5], "events_iran_actor": 1,
+          "feed": ["backfile", "backfile", "daily", "daily", "stale"],
+          "date": pd.to_datetime(["2013-03-29", "2013-04-02", "2013-04-01", "2013-04-02", "2013-04-02"]),
+          "n_events": [1, 1, 1, 1, 50], "articles_all": [100, 999, 300, 100, 5000],
+          "articles_iran_actor": [1, 999, 3, 4, 0], "articles_iran_actor_geo": [2, 999, 4, 5, 0], "events_iran_actor": 1,
           **SENT})
       out, dropped = W.gdelt_weekly(gd, pd.DatetimeIndex([T("2013-03-29"), T("2013-04-05")]))
-      assert dropped == 1
+      assert dropped == {"wrong_side": 1, "stale_rows": 1, "stale_events": 50, "patched_days": 0}
+      # the stale row is MERGED into Apr 2: share = (3+4+0)/(300+100+5000)
+      # (replace the share assert below accordingly when writing the test)
       assert out.loc[T("2013-04-05"), "iran_share"] == pytest.approx(7 / 400)   # sum/sum, not mean of shares
       assert out.loc[T("2013-04-05"), "gdelt_days"] == 2
 
@@ -835,7 +840,7 @@ The user has to take part in this task: a Google login in the browser, the sandb
 - [ ] **Step 1: Build the panel**
 
   1. Load the eight raw files, using the six daily sources, AI-GPR and the intraday daily file (`raw["intraday"] = load_raw("brent_intraday_daily")`). If that file is missing because it is git-ignored, stop with a message pointing to notebook 01's Dukascopy cell.
-  2. Run `build_weekly_panel` and print the GDELT dropped-row count.
+  2. Run `build_weekly_panel` and print the GDELT counts (wrong side of the switch; stale rows/events merged, with the 5 weeks holding the most; the 18 patched days), plus the GDELT 2.0 patch table (shift and overlap correlation per column, PASS/FAIL vs 0.8) and a plot of 2025 weekly `iran_gdelt` with the patched weeks shaded.
   3. Save with `panel.to_csv(paths.PROCESSED / "weekly_panel.csv", index=False)`.
 
   If it raises on zero-Iran weeks (any variant), AI-GPR ≤ 0, or a zero-hour intraday week, stop and show the user the listed weeks. Do not offset or fill (spec §7.2 step 6).

@@ -1,0 +1,10 @@
+file,source,url_or_table,fetched_at_utc,first_date,last_date,n_rows,sha256,bytes
+aigpr_iran_monthly.csv,Iacoviello-Tong AI-GPR country monthly,https://www.matteoiacoviello.com/ai_gpr_files/ai_gpr_country_monthly.csv,2026-11-24T04:27:55Z,2004-01-01,2026-10-01,274,608d90cd973e4652a3efad584ea4d32ffc365059bf151e759d187a60f4871d93,5054
+brent_daily.csv,FRED,https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILBRENTEU&cosd=1987-05-20&coed=2026-11-06,2026-11-24T04:27:54Z,1987-05-20,2026-11-06,9125,b77e6bc34d588ce0fa24b1ea00fa0517dc4d97738a0dd2e5bceefc0b43de9ded,155092
+brent_intraday_daily.csv,Dukascopy BRENT.CMD/USD h1 bid,dukascopy-python 7.0.0,2026-11-24T05:28:53Z,2010-12-02,2026-11-06,4058,8b3e4decc3a11b61061266f73b6fc0782a8423f1e6e01e7d534bd4c502e4aa3b,245595
+brent_intraday_removed.csv,Dukascopy BRENT.CMD/USD h1 bid,dukascopy-python 7.0.0,2026-11-24T05:28:53Z,2011-11-15,2013-08-13,9,0ac7ba3f61262444f5d0eff90bc01009e34367503448e15efe2dd4f1dd801688,626
+gdelt_daily.csv,GDELT 1.0 BigQuery,gdelt-bq.full.events,2026-11-24T04:53:04Z,2005-01-01,2026-11-06,12822,cd9111b54281fd52658ccbda17f7da50958d4268311dee2accd6d5a9637aa7b5,1081265
+gdelt_v2_2025_daily.csv,"GDELT 2.0 BigQuery (2025, outage patch)",gdelt-bq.gdeltv2.events,2026-11-24T05:01:00Z,2025-01-01,2025-12-31,696,4e84acb0a576fd6b6f289afb6b120c29c0a5fdb2718b7f26e6c8b7d4a5adbf9f,52745
+gpr_daily.csv,Caldara-Iacoviello GPR daily,https://www.matteoiacoviello.com/gpr_files/data_gpr_daily_recent.xls,2026-11-24T04:27:55Z,2004-12-01,2026-11-06,8011,3b3f0ca2ac4f14206cc13e22b19b5fdc81aa487241db55416336c5b65fcb422a,234038
+ovx_daily.csv,FRED,https://fred.stlouisfed.org/graph/fredgraph.csv?id=OVXCLS&cosd=2007-05-01&coed=2026-11-06,2026-11-24T04:27:54Z,2007-05-10,2026-11-06,4908,7dfbe0160b0fba6a3f8794b64a5fcb679beaece9aa9eb4d8cbd8e9a57e77be1d,82991
+vix_daily.csv,FRED,https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2004-12-01&coed=2026-11-06,2026-11-24T04:27:54Z,2004-12-01,2026-11-06,5552,43229cc741d09154acd1253f9c6d9dc527859a437dde648e04b5c9ab5f52b6b9,93789

@@ -1,0 +1,32 @@
+[project]
+name = "brent"
+version = "0.1.0"
+description = "MGTF 405 Group 7: Markov-switching TVTP model of weekly Brent volatility with GDELT Iran news"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "arch>=9.0.0",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.5",
+    "pandas>=3.1.1",
+    "requests>=2.34.2",
+    "scipy>=1.18.1",
+    "statsmodels>=0.15",
+    "xlrd>=2.0.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+    "pytest>=9.2.0",
+]
+gdelt = [
+    "google-cloud-bigquery>=3.47.0",
+    "pandas-gbq>=0.35.4",
+]
+intraday = [
+    "dukascopy-python>=7.0.0",
+]

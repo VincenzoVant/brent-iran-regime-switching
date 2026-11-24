@@ -14,3 +14,23 @@ venv/
 
 # Slide decks (shared outside git)
 *.pptx
+
+# Python / tooling
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Expensive intermediate outputs (rebuildable, can be large)
+results/checkpoints/
+
+# Guard against accidental bulk downloads
+*.zip
+*.xls
+*.xlsx
+*.parquet
+
+# Dukascopy-derived daily files stay local (config.INTRADAY_REDISTRIBUTE = False);
+# rebuild with notebook 01, section 5 (uv sync --group intraday)
+data/raw/brent_intraday_daily.csv
+data/raw/brent_intraday_removed.csv
