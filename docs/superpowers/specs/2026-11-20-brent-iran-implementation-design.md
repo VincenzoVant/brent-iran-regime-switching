@@ -8,6 +8,7 @@
 **Change log**
 - **2026-11-23: professor feedback — intraday RV, GDELT sentiment, GARCH-X/HAR-X.** After the intro presentation the professor asked for (a) the sentiment of GDELT Iran news (does positive vs. negative news matter), (b) a less noisy realized variance from intraday (1-hour) Brent prices, (c) GARCH-X and HAR-X models with lagged RV and a news indicator. The user approved all three **[decided]**. Additions: hourly RV from Dukascopy (§4.3, §6.8) as the main evaluation measure; conflict/cooperation shares and tone from GDELT (§6.4, §9.1) and an M3-tone variant (§7.4); HAR-X and GARCH-X as **extra models** (§4.4, §8.7), whose status (benchmark, replacement or appendix) is **open** and decided later from results, not here **[decided]**. Nothing had been built when this was written; the timeline (§11) is rewritten for the real start on Nov 23. Touched: §1–§4, §5.1–5.3, §5.5, §6 intro, §6.4–6.8, §7.1–7.9, §8.1, §8.3–8.12, §9.1–9.6, §10–§14.
 - **2026-11-23 (later): aligned with Plans 2 and 3 after cross-document review.**
+- **2026-11-23 (user decisions): weekly panel always committed (derived statistic); Thanksgiving is a normal working day; LSEG/UCSD-library route dropped; no comparison against deck claims (the deck was a feasibility pitch, already presented; it stays git-ignored).**
 - 2026-11-20: approved.
 
 ---
@@ -33,7 +34,7 @@ The work is done in **Jupyter notebooks**, with Claude Code writing most of the 
 - Parked items from plan §17 (density forecasts/PIT/CRPS, prediction markets, PortWatch, Bloomberg pull, OPEC/Känzig/Kilian/dollar controls, GPR acts/threats split, placebo countries, 3-state model, winsorizing, `BZ=F`, VaR tests, GJR-GARCH).
 - Brent implied vol from Bloomberg (plan §4.2 optional; on the cut list). The code accepts it as a drop-in `vix` replacement if someone gets the data.
 - A general-purpose library, CLI, CI, or packaging beyond an editable install.
-- Exchange-traded intraday Brent (FirstRate Data, LSEG Tick History, Databento). Only used if the Dukascopy validation fails or the UCSD library confirms LSEG access (§4.3).
+- Exchange-traded intraday Brent (FirstRate Data, LSEG Tick History, Databento). Only used if the Dukascopy validation fails (§4.3).
 - Deciding now whether HAR-X/GARCH-X become benchmarks or replace anything. They are "extra models" until results are in **[decided]**.
 
 **Anti-goals** (the project fails even if it runs)
@@ -51,7 +52,7 @@ The work is done in **Jupyter notebooks**, with Claude Code writing most of the 
 
 | Constraint | Detail |
 |---|---|
-| Time | Work starts Mon Nov 23 with nothing built, about 3 days behind the original Nov 20 schedule; Thanksgiving is Nov 26. Analysis freeze **Thu Dec 3**, hand-off to the report writer **Fri Dec 4**, due Mon Dec 7, 6 pm. Timeline in §11. |
+| Time | Work starts Mon Nov 23 with nothing built, about 3 days behind the original Nov 20 schedule; Thanksgiving (Nov 26) is a normal working day. Analysis freeze **Thu Dec 3**, hand-off to the report writer **Fri Dec 4**, due Mon Dec 7, 6 pm. Timeline in §11. |
 | Intraday data | Free Dukascopy feed, no account. Instrument `BRENT.CMD/USD` is a CFD that tracks front-month ICE Brent futures: quotes, not exchange trades. Earliest data Nov 17, 2006. Hourly bars are never written to disk (§6.8). |
 | Team | One builder (the user, with Claude Code as the coding agent), working through the notebooks in order **[decided]**. A teammate writes the report and presentation later from committed results and must be able to rerun notebooks 02 → 08. |
 | Disk | Minimal data **[decided]**. Budget in §6.7. |
@@ -87,7 +88,7 @@ The work is done in **Jupyter notebooks**, with Claude Code writing most of the 
 |---|---|---|
 | **A. Dukascopy free historical feed, `BRENT.CMD/USD`, 1-hour bars** | **Chosen [decided]** | Free, no account, from Nov 17, 2006 (per the `dukascopy-node` README; verified in notebook 01). It is a CFD tracking front-month ICE Brent futures: dealer quotes, not exchange prices, and it rolls between contracts (§6.8 roll rule). Access via the Python package `dukascopy-python` (new optional group `intraday`); its API is unverified, so notebook 01 checks it. Fallback: the MIT-licensed `dukascopy-node` CLI via `npx`. |
 | B. FirstRate Data, exchange ICE Brent hourly from Jan 2008 | Optional cross-check only | About $100 (price unverified). Bought only if the CFD level check in notebook 02 fails (§7.2). |
-| C. LSEG Tick History via the UCSD library (RIC `LCO`, back to 2005) | **Open item for the team** | Email the UCSD library to ask whether it licenses LSEG Tick History with ICE Brent. If yes, it can later replace Dukascopy before 2007 (and serve as a cross-check). If no, nothing changes. |
+| C. LSEG Tick History via the UCSD library (RIC `LCO`, back to 2005) | Not pursued **[decided 2026-11-23]** | Access unknown; not worth the time before the deadline. |
 | D. Oxford-Man Realized Library | Not usable | Has no oil, and stopped in mid-2022. |
 | E. Bloomberg intraday | Not usable | Intraday lookback is about 140 days (forum claim, not checked); far too short. |
 | F. Databento ICE Europe | Not usable | Starts Dec 2018, after the start of the evaluation window. |
@@ -223,7 +224,7 @@ results/checkpoints/
 data/raw/brent_intraday_daily.csv
 data/raw/brent_intraday_removed.csv
 ```
-The weekly aggregates in `weekly_panel.csv` stay committed either way **[our call: a derived weekly statistic, not the vendor's data]**.
+The weekly aggregates in `weekly_panel.csv` stay committed either way **[decided 2026-11-23: a derived weekly statistic, not the vendor's data]**.
 
 ### 5.4 Notebook outputs: kept **[our call]**
 
@@ -554,7 +555,7 @@ Conventions for every notebook:
 
      Only plot what exists: Dec 2011 and 2008 fall in the training window, so they have no OOS rows (§14, item 14); their OOS panels show only the actual `rv_hourly`.
   3. Non-Iran comparisons: 2008, COVID-19, Russia–Ukraine (anchor dates in config, §8.1).
-  4. Deck fact checks (plan §16): Brent Feb 27 → 2026 peak and its date; the week-to-Mar-6, 2026 weekly change and its rank among all Friday-to-Friday changes since 1987, from the frozen `brent_daily.csv` (starts 1987-05-20; same week rules as the panel); the seven event moves on deck slide 2 (1-day and 5-day changes from the spot series). Where helpful, the Dukascopy daily `high` (`brent_intraday_daily.csv`) gives the intraday futures-CFD peak next to the spot close (e.g. the 2026 peak). It is labelled as a different instrument, never mixed into the spot numbers. No network access.
+  4. Fact checks for the report (plan §16; the deck is not compared, it was a feasibility pitch): Brent Feb 27 → 2026 peak and its date; the week-to-Mar-6, 2026 weekly change and its rank among all Friday-to-Friday changes since 1987, from the frozen `brent_daily.csv` (starts 1987-05-20; same week rules as the panel); the reaction move and 5-day move for every event in `config.EVENTS` (spot series). Where helpful, the Dukascopy daily `high` (`brent_intraday_daily.csv`) gives the intraday futures-CFD peak next to the spot close (e.g. the 2026 peak). It is labelled as a different instrument, never mixed into the spot numbers. No network access.
 - **Checks:** every event week exists in the panel; holdout event marked "holdout, not in the test" in every output.
 
 ### 7.8 `08_robustness.ipynb`
@@ -601,7 +602,7 @@ Conventions for every notebook:
 
 - **Placebo details [our call]:** shifts drawn uniformly from offsets at least 52 weeks away from 0 (mod the sample length), seed `C.SEED`. Shifts wrap within **2005–2025 only**, so 2026 values never enter (plan §5: 2026 never used to choose anything). OOS placebos are evaluated on 2019–2025 only. The HARX placebo (#9) wraps within `HOURLY_SAMPLE_START` → 2025-12-26 (its estimation sample) and reuses the same 200 offsets for the in-sample and OOS gains; HARX_C's forecasts do not depend on Iran, so they are computed once.
 - **Iran-in-the-mean [our call]:** common (non-switching) coefficient on M3, using `switching_exog=[PHI_SWITCHING, False]`; one parameter, one test.
-- **Extra outputs of notebook 08 (Plan 3):** `results/tables/rob_status.csv` (one row per check: `done`, `cut`, `in_sample_only`, `failed`; feeds the limitations table), `rob_fit_health.csv` (per run and model: convergence share, non-converged, degenerate and `refit_from_scratch` counts, median seconds), `handoff_numbers.csv` (`name, value, source_file, note`, built from the tables, no hand-typed numbers). Notebook 07 writes `results/tables/deck_fact_checks.csv` and, if the user supplies the deck's claims, `results/frozen/deck_claims.csv` (`claim_id, event_id, claimed_1d, claimed_5d`).
+- **Extra outputs of notebook 08 (Plan 3):** `results/tables/rob_status.csv` (one row per check: `done`, `cut`, `in_sample_only`, `failed`; feeds the limitations table), `rob_fit_health.csv` (per run and model: convergence share, non-converged, degenerate and `refit_from_scratch` counts, median seconds), `handoff_numbers.csv` (`name, value, source_file, note`, built from the tables, no hand-typed numbers). Notebook 07 writes `results/tables/deck_fact_checks.csv` (computed facts only; no deck claims are compared).
 - **Runtime:** in-sample placebo ≈ 200 × 5–10 s ≈ 20–35 min. Each extra OOS run ≈ 0.5–1.5 h. OOS placebo ≈ 20 × 365 origins × 4 s ≈ 8 h (only with spare time; parallelizable with `joblib` across shifts). HARX placebo ≈ 200 × 365 OLS fits, a few minutes. E1 in sample ≈ minutes; E1 OOS ≈ 1 h (estimate).
 - **Checks:** each robustness run's fitlog convergence printed; the placebo's actual-data LR equals notebook 04's LR (same code path); the HARX placebo's unshifted gain equals notebook 04's HARX_CI vs HARX_C numbers and notebook 06's QLIKE difference on 2019–2025.
 
@@ -1176,7 +1177,7 @@ Verification beyond tests (in notebooks):
 
 **[decided]** One builder, notebooks in order. **[our call]** Module code is written just before the notebook that first needs it, with its tests. Critical path: **01 → 02 → 03 (freeze φ) → 05 timing → 05 validation → freeze → 05 full → 06 → 07**. Notebook 04 and the build of 06 fit into time the OOS loop runs unattended.
 
-**Rewritten Nov 23 [our call].** Nothing was built by Mon Nov 23, about 3 days behind the original dates, and the Nov 23 additions add roughly a day of work (mostly in notebooks 01, 02 and `benchmarks.py`). Thanksgiving is now a working day at reduced pace. The three implementation plans map onto the dates as follows.
+**Rewritten Nov 23 [our call].** Nothing was built by Mon Nov 23, about 3 days behind the original dates, and the Nov 23 additions add roughly a day of work (mostly in notebooks 01, 02 and `benchmarks.py`). Thanksgiving is a normal full working day **[decided]**. The three implementation plans map onto the dates as follows.
 - **Plan 1** (scaffold, data, notebooks 01–02): Nov 23–25.
 - **Plan 2** (`design`, `ms`, `forecast`, `insample`, `benchmarks` incl. HAR-X/GARCH-X, `oos`; notebooks 03–05 incl. the overnight OOS run): Nov 25–29.
 - **Plan 3** (`evaluate`, `plots`; notebooks 06–08 incl. E1): Nov 30–Dec 3.
@@ -1186,7 +1187,7 @@ Verification beyond tests (in notebooks):
 | **Mon Nov 23** | Plan 1: scaffold (`uv init`, deps incl. `gdelt` and `intraday` groups, `config.py`, `paths.py`). **BigQuery setup and D1 first** (riskiest: account access, backfile `DATEADDED`, coverage). **Dukascopy access check**: one week of hourly bars via `dukascopy-python`, else `npx`; read the terms page. `sources.py` HTTP and GDELT parts. | D1 (minutes) |
 | **Tue Nov 24** | `sources.py` Dukascopy part + tests; **notebook 01**: FRED, GPR, AI-GPR, Q1 with sentiment columns, full Dukascopy fetch, **roll rule decided with the user**. | Q1 (minutes); Dukascopy fetch (minutes to ≈ 1 h) |
 | **Wed Nov 25** | `weekly.py` + tests; **notebook 02** (panel with `rv_hourly` and tone columns, hourly vs. daily check). **Plan 1 done.** Plan 2 starts: `design.py`, `ms.py` + tests. | — |
-| **Thu Nov 26** *(Thanksgiving)* | `forecast.py`, `insample.py` + tests; **notebook 03 → freeze φ**. | Bootstrap LR ≈ 20 min |
+| **Thu Nov 26** | `forecast.py`, `insample.py` + tests; **notebook 03 → freeze φ**. | Bootstrap LR ≈ 20 min |
 | **Fri Nov 27** | `benchmarks.py` (incl. HAR-X, GARCH-X and the recovery test), `oos.py` + `test_oos.py`; **notebook 05 `timing`** → set restarts; **start `validation` in the evening**. | Validation stage ≈ 0.5–1 h |
 | **Sat Nov 28** | **Review validation → freeze spec** (`spec_freeze.json`); **start `full`** and leave it overnight. Meanwhile notebook 04 (RQ2, M3-tone, extra models in sample). | Full run ≈ 1–2 h (≈ 2–3 h if validation changed a setting and it reruns from 2012-12-28) |
 | **Sun Nov 29** | Notebook 05 checks on the full run; commit. Buffer. **Plan 2 done.** | — |
@@ -1261,7 +1262,7 @@ Data notebooks 01–02 are prerequisites.
 | R11 | Stale kernels; committed outputs out of sync with code | `autoreload`; restart and run all before committing a notebook (§5.4). |
 | R12 | Size creep (figures, checkpoints, notebook outputs) | `check_budget()` in every notebook and in tests (incl. per-notebook limits); checkpoints ignored; inline figures at 100 dpi; notebooks committed at milestones only. |
 | R13 | A fresh clone picks Python 3.14 | `.python-version` + `requires-python` make uv fetch 3.12. |
-| R14 | Dukascopy is a CFD (dealer quotes tracking front-month ICE futures), not an exchange price; level and dynamics may differ from FRED spot | Level check on 2007–2012 in notebook 02 (correlation, mean ratio band [0.8, 1.25]); no rescaling; flag to the team if outside. Optional exchange cross-check (FirstRate, ICE Brent hourly from 2008) or the UCSD LSEG route (§4.3). Daily `rv` stays as the secondary measure, so every headline result can be read on both. |
+| R14 | Dukascopy is a CFD (dealer quotes tracking front-month ICE futures), not an exchange price; level and dynamics may differ from FRED spot | Level check on 2007–2012 in notebook 02 (correlation, mean ratio band [0.8, 1.25]); no rescaling; flag to the team if outside. Optional exchange cross-check (FirstRate, ICE Brent hourly from 2008; §4.3). Daily `rv` stays as the secondary measure, so every headline result can be read on both. |
 | R15 | Roll jumps inflate `rv_hourly` | Candidate lister, rule agreed with the user and stored in `INTRADAY_ROLL_RULE` (part of the settings hash), every removed return logged; notebook 02 compares roll weeks with the rest. |
 | R16 | Dukascopy unavailable, API different from expected, rate-limited, or terms forbid redistribution | Access checked on day 1 (Nov 23); `npx dukascopy-node` fallback; yearly chunks with retries; no account needed. Terms → git-ignore the derived files (§5.3). Last resort: the no-intraday fallback in §11, a config switch. |
 | R17 | GARCH-X: γ on the boundary (0), weak identification of ω vs. γ, optimizer stuck | Chi-bar-squared p-values (§8.7), SEs flagged when γ̂ = 0; nesting start from GARCH-t so LL never falls below it; SLSQP with bounds; simulation-recovery test; non-converged weeks logged. |

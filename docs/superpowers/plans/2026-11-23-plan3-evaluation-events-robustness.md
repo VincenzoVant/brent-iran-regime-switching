@@ -390,7 +390,7 @@ The five failure modes the spec implies but no spec test pins. Each has a test i
   - `weekly_change_rank(brent_daily, week_end, how="log") -> dict` (`change`, `rank` among all Friday-to-Friday changes since 1987-05-22, `n`; rank 1 = largest gain)
   - `peak_after(brent_daily, start, end) -> dict` (`peak`, `date` of the highest close in the window)
   - `reaction_day(brent_daily, date) -> pd.Timestamp` (first trading day on or after `date`); `move(brent_daily, date, after_days: int) -> float`: base = last close **strictly before** `date`; `after_days=0` is the reaction move (first close on or after `date` vs base); `after_days=5` is the close 5 trading days after the reaction day vs the same base; percentages
-  - `fact_check_table(brent_daily, intraday_daily | None, events, claims: pd.DataFrame | None) -> pd.DataFrame`
+  - `fact_check_table(brent_daily, intraday_daily | None, events) -> pd.DataFrame`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -441,7 +441,7 @@ The five failure modes the spec implies but no spec test pins. Each has a test i
 
 - [ ] **Step 2: Run; expect FAIL.**
 
-- [ ] **Step 3: Implement.** `weekly_change_rank` builds Friday closes with `weekly.weekly_brent(brent_daily, weeks)` on `weekly.fridays(start="1987-05-22", end=C.FREEZE_DATE)` so the week rules are the panel's. `fact_check_table` rows: (a) close on 2026-02-27, the 2026 peak close after it and its date, the intraday high from `intraday_daily["high"]` over the same window labelled `instrument = "Dukascopy CFD"` (never mixed with the spot rows); (b) the week ending 2026-03-06: change, rank, n; (c) for every event date in `events` the reaction move (`move(..., 0)`) and the 5-day move (`move(..., 5)`), with the reaction day printed; (d) if `claims` is given (`results/frozen/deck_claims.csv`, columns `claim_id, event_id, claimed_1d, claimed_5d`, filled by hand), add `claimed_*` and `diff_*` columns.
+- [ ] **Step 3: Implement.** `weekly_change_rank` builds Friday closes with `weekly.weekly_brent(brent_daily, weeks)` on `weekly.fridays(start="1987-05-22", end=C.FREEZE_DATE)` so the week rules are the panel's. `fact_check_table` rows: (a) close on 2026-02-27, the 2026 peak close after it and its date, the intraday high from `intraday_daily["high"]` over the same window labelled `instrument = "Dukascopy CFD"` (never mixed with the spot rows); (b) the week ending 2026-03-06: change, rank, n; (c) for every event date in `events` the reaction move (`move(..., 0)`) and the 5-day move (`move(..., 5)`), with the reaction day printed. No deck claims are compared (decided 2026-11-23: the deck was a feasibility pitch).
 
 - [ ] **Step 4: Run `uv run pytest tests/test_events.py -q`; expect PASS.**
 
@@ -540,7 +540,7 @@ The five failure modes the spec implies but no spec test pins. Each has a test i
 ### Task 7: Notebook 07 — events and fact checks (Tue Dec 1 → Wed Dec 2)
 
 **Files:**
-- Create: `notebooks/07_events.ipynb`, `results/frozen/deck_claims.csv` (only if the user supplies the claims)
+- Create: `notebooks/07_events.ipynb`
 - Output: `results/tables/{event_table,deck_fact_checks}.csv`, `results/figures/event_<id>.png` (9 Iran + 3 non-Iran = 12), `results/figures/events_grid.png`
 
 **Interfaces:**
@@ -553,8 +553,8 @@ The five failure modes the spec implies but no spec test pins. Each has a test i
 - [ ] **Step 3: Figures.** For each of the 12 events call `plots.event_window_plot(event_id, table_for_event)` and `save_fig(fig, f"event_{event_id}")`; then `events_grid` → `events_grid`. The 2026 event title and figure carry "holdout, not in the test". Dec 2011 and 2008 show only actuals (training window; markdown cell says so, spec §14 item 14).
 
 - [ ] **Step 4: Fact checks** (spec §7.7 step 4; no network).
-  1. Read the deck's slide 2 claims from the local, git-ignored deck `Plans/Brent-Iran_Pitch_Modern-Sage.pptx` **only if the user pastes them**: ask the user for the seven event moves printed on slide 2 and write them to `results/frozen/deck_claims.csv`. If the user has not supplied them by Wed noon, run without claims (computed moves for all nine Iran events) and list "deck claims not compared" in the notebook and the hand-off note.
-  2. `events.fact_check_table(brent_daily, intraday_or_None, C.EVENTS, claims_or_None)` → `deck_fact_checks.csv`.
+  1. (No deck comparison: the deck was a feasibility pitch and stays git-ignored; decided 2026-11-23.)
+  2. `events.fact_check_table(brent_daily, intraday_or_None, C.EVENTS)` → `deck_fact_checks.csv` (computed moves for all nine Iran events and the three non-Iran events).
   3. Print: Brent close on Feb 27, 2026 → the 2026 peak close and date; the week to 2026-03-06 change and its rank among all Friday-to-Friday changes since 1987 (this is the deck's "largest weekly gain since 1987" claim: state TRUE or FALSE from the rank); the intraday CFD high next to the spot peak, labelled as a different instrument.
 
 - [ ] **Step 5: Checks cell.** Every event week exists in the panel; holdout event marked in every output (`holdout` column True only for `hormuz_2026`); 12 `event_*.png` files exist; `paths.check_budget()`.
@@ -562,7 +562,7 @@ The five failure modes the spec implies but no spec test pins. Each has a test i
 - [ ] **Step 6: Restart and run all; commit.**
 
   ```bash
-  git add notebooks/07_events.ipynb results/tables/event_table.csv results/tables/deck_fact_checks.csv results/figures/event_*.png results/figures/events_grid.png results/frozen/deck_claims.csv
+  git add notebooks/07_events.ipynb results/tables/event_table.csv results/tables/deck_fact_checks.csv results/figures/event_*.png results/figures/events_grid.png
   git commit -m "Add event case studies, event table and deck fact checks (notebook 07)"
   ```
 
