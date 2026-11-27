@@ -78,11 +78,12 @@ INTRADAY_ROLL_RULE: dict | None = {"kind": "gap", "max_gap_hours": 84}
 # weekends ~52 h, Easter/Christmas 74-80 h are kept) are removed: 9 returns, all before Aug 2013.
 INTRADAY_REDISTRIBUTE: bool | None = False  # DECIDED 2026-11-23 by the user: the Dukascopy-derived daily files
                                             # stay local (git-ignored); the weekly panel is still committed
-HOURLY_SAMPLE_START = "2010-12-10"          # first FULL Sat-Fri week with rv_hourly (week of Dec 2 is partial)
-# DATA QUALITY (found 2026-11-23): Jan 2012 - May 2013 Dukascopy is unreliable (stale quote 111.71 re-printed,
-# 12-18 bars/day, 84 weekend bars, holes Oct 18-Nov 15 2011 and Feb 20-May 22 2013). Clean from 2015, mostly
-# clean from Jun 2013. PROPOSED (decide in notebook 02): HOURLY_SAMPLE_START = "2013-06-07".
-STANDARDIZE_WINDOW_HOURLY = (HOURLY_SAMPLE_START, "2012-12-28")   # 108 weeks; hourly-sample models and E1
+HOURLY_SAMPLE_START = "2013-06-07"          # DECIDED 2026-11-23 (start of notebook 02): first week of hourly RV.
+# Why not Dec 2010: Jan 2012 - May 2013 Dukascopy is unreliable (stale quote 111.71 re-printed, 12-18 bars/day,
+# weekend bars, holes Oct 18-Nov 15 2011 and Feb 20-May 22 2013). Clean from 2015, mostly clean from Jun 2013.
+# Effects: HAR-X/GARCH-X (X_SAMPLE_START) train from here; rv_hourly is NaN before it.
+STANDARDIZE_WINDOW_HOURLY = (HOURLY_SAMPLE_START, "2015-06-05")   # 105 weeks = the first two clean years.
+# Only a choice of units for the hourly variables (GARCH-X scaling, E1 z-scores, RV level check).
 MIN_HOURS_WEEK = 60                         # flag (not drop) weeks with fewer hourly returns
 RV_LEVEL_RATIO_BAND = (0.8, 1.25)           # mean(rv_hourly)/mean(rv) on STANDARDIZE_WINDOW_HOURLY; outside -> tell the team
 RV_MEASURES = ("rv_hourly", "rv", "rv_gk")

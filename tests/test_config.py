@@ -12,11 +12,12 @@ def test_window_counts():
     assert n_fridays(*C.TEST) == 365
     assert n_fridays(*C.HOLDOUT) == 45
     assert n_fridays(C.SAMPLE_START, C.FREEZE_DATE) == 1140
-    # Dukascopy hourly Brent starts Thu 2010-12-02 (verified 2026-11-23 with both tools),
-    # so the first full Sat-Fri week ends 2010-12-10 and the hourly window has 108 weeks.
-    assert C.INTRADAY_START == "2010-12-02" and C.HOURLY_SAMPLE_START == "2010-12-10"
-    assert C.STANDARDIZE_WINDOW_HOURLY == (C.HOURLY_SAMPLE_START, C.TRAIN[1])
-    assert n_fridays(*C.STANDARDIZE_WINDOW_HOURLY) == 108
+    # Dukascopy hourly Brent starts Thu 2010-12-02 (verified 2026-11-23 with both tools), but Jan 2012 -
+    # May 2013 is unreliable; decided 2026-11-23: hourly sample starts Fri 2013-06-07, and the hourly
+    # variables are scaled over its first two years (105 weeks).
+    assert C.INTRADAY_START == "2010-12-02" and C.HOURLY_SAMPLE_START == "2013-06-07"
+    assert C.STANDARDIZE_WINDOW_HOURLY == (C.HOURLY_SAMPLE_START, "2015-06-05")
+    assert n_fridays(*C.STANDARDIZE_WINDOW_HOURLY) == 105
 
 
 def test_window_bounds_are_fridays():
