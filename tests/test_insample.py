@@ -56,10 +56,19 @@ def test_ladder_nesting_and_df(fits, monkeypatch):
     p, L = fits
     assert L["M1"].loglike <= L["M2"].loglike + 1e-6 and L["M2"].loglike <= L["M3"].loglike + 1e-6
     assert I.lr_test(L["M2"], L["M3"])["df"] == 1
-    assert I.lr_test(L["M1"], L["M2"])["df"] == 6
-    monkeypatch.setattr(C, "M3_VARIANT", "iran_both_logits")
+    assert I.lr_test(L["M1"], L["M2"])["df"] == 3                          # controls only in N->H
+    monkeypatch.setattr(C, "M3_VARIANT", "iran_both_logits")             # Iran in both logits, controls N->H
     L2 = I.fit_ladder(p, p["date"].iloc[-1], phi_switching=False)
     assert I.lr_test(L2["M2"], L2["M3"])["df"] == 2
+    assert L2["M3"].fixed == {f"p[1->0].tvtp{j}": 0.0 for j in (1, 2, 3)}
+
+
+def test_ladder_df_without_controls_only_nh(sim_panel, monkeypatch):    # the pre-2026-11-27 behaviour
+    monkeypatch.setattr(C, "CONTROLS_ONLY_NH", False)
+    p = sim_panel(n=300, beta=2.0, seed=405)
+    L = I.fit_ladder(p, p["date"].iloc[-1], phi_switching=False)
+    assert I.lr_test(L["M1"], L["M2"])["df"] == 6 and L["M2"].fixed == {}
+    assert I.lr_test(L["M2"], L["M3"])["df"] == 1
 
 
 def test_tone_df_and_wald(fits):
@@ -99,9 +108,17 @@ def test_coef_table_deck_signs_and_fixed_rows(fits):
     p, L = fits
     tab = I.coef_table(L["M3"], "M3")
     row = tab[(tab["var"] == "iran_gdelt") & (tab["logit"] == "N->H")].iloc[0]
-    assert row["coef"] == pytest.approx(-L["M3"].params["p[0->0].tvtp4"]) and row["se"] > 0
+    assert row["coef"] == pytest.approx(-L["M3"].params["p[0->0].tvtp4"])
+    if abs(row["coef"]) >= C.MAX_TVTP_COEF - 1e-6:                        # n=300 sample: slope at the bounded-MLE cap
+        assert np.isnan(row["se"]) and row["cap_note"].startswith("at the") and "p[0->0].tvtp4" in ms.at_cap(L["M3"].params)
+    else:
+        assert row["se"] > 0 and row["cap_note"] == ""
     fx = tab[(tab["var"] == "iran_gdelt") & (tab["logit"] == "H->N")].iloc[0]
     assert fx["fixed"] and fx["coef"] == 0.0 and np.isnan(fx["se"])
+    ctl = tab[tab["var"].isin(["gpr", "vix", "log_rv"]) & (tab["logit"] == "H->N")]
+    assert len(ctl) == 3 and ctl["fixed"].all() and (ctl["coef"] == 0.0).all() and ctl["se"].isna().all()
+    free = tab[tab["var"].isin(["gpr", "vix", "log_rv"]) & (tab["logit"] == "N->H")]
+    assert not free["fixed"].any()
     assert set(["model", "logit", "var", "coef", "se", "z", "p", "fixed"]) <= set(tab.columns)
 
 

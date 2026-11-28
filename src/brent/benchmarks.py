@@ -166,8 +166,8 @@ def garchx_fit(r: pd.Series, X: pd.DataFrame, start_params: pd.Series | None = N
         th, ll, ok = max(cands, key=lambda c: c[1])
         if start_params is not None:                     # never end below the warm start itself
             ll0 = garchx_loglike(start_params[names].values.astype(float), rv, Xv, h1)
-            if ll0 > ll:
-                th, ll = start_params[names].values.astype(float), ll0
+            if ll0 > ll:                                 # keep the warm start; report the warm run's flag
+                th, ll, ok = start_params[names].values.astype(float), ll0, cands[0][2]
     h = pd.Series(_garchx_h(th, rv, Xv, h1), index=r.index)
     return GarchXFit(pd.Series(th, index=names), float(ll), ok, time.perf_counter() - t0, h,
                      list(X.columns), len(caught))
@@ -261,8 +261,8 @@ def model_forecast(name, panel, end, state) -> dict:
         fit = garchx_fit(r, X, state.get(name))
         state[name] = fit.params
         out = garchx_forecast(fit, r, x_next)
-        out.update(params=fit.params, converged=fit.converged, loglike=fit.loglike, floored=False,
-                   n_warnings=fit.n_warnings)
+        out.update(mean_fc=float(fit.params["mu"]), params=fit.params, converged=fit.converged,
+                   loglike=fit.loglike, floored=False, n_warnings=fit.n_warnings)
     elif name == "RW":
         out = {"mean_fc": rw_forecast(), "params": pd.Series(dtype=float), "converged": True,
                "loglike": np.nan, "floored": False, "n_warnings": 0}

@@ -168,3 +168,24 @@ def test_garchx_model_forecast_and_warm_state(sim_panel):
     assert {"converged", "loglike", "floored", "seconds", "n_warnings"} <= set(a)
     b = B.model_forecast("GARCHX_CI", p, pd.Timestamp("2019-01-04"), state)
     assert np.isfinite(b["var_fc"])
+
+
+def test_garchx_model_forecast_returns_mean(sim_panel):
+    p = sim_panel(n=1140)
+    for name in ("GARCHX_C", "GARCHX_CI"):
+        out = B.model_forecast(name, p, pd.Timestamp("2018-12-28"), {})
+        assert out["mean_fc"] == out["params"]["mu"]
+
+
+def test_garchx_kept_warm_start_reports_warm_runs_flag(sim_garchx, monkeypatch):
+    r, X, true = sim_garchx
+    r, X = r.iloc[:800], X.iloc[:800]
+    start = B.garchx_fit(r, X).params
+    calls = {"n": 0}
+
+    def worse(theta0, rr, XX, h1):                       # warm run fails, the cold runs "succeed" but are worse
+        calls["n"] += 1
+        return np.asarray(theta0, float) * 0 + np.r_[0.0, 1.0, 0.0, 0.0, [0.0] * XX.shape[1], 50.0], (-1e9 if calls["n"] == 1 else -5e8), calls["n"] > 1
+    monkeypatch.setattr(B, "_slsqp", worse)
+    fit = B.garchx_fit(r, X, start)
+    assert np.allclose(fit.params.values, start.values) and not fit.converged

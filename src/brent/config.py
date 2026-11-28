@@ -96,19 +96,24 @@ X_CONTROLS = ("gpr", "vix")                 # news/fear regressors of HARX_C and
 X_RV_COL = "rv_hourly"                      # "rv" only in the no-intraday fallback
 X_SAMPLE_START = HOURLY_SAMPLE_START        # SAMPLE_START in that fallback
 GARCHX_SCALE_WINDOW = STANDARDIZE_WINDOW_HOURLY
+HAR_MIN_ROWS = 52                           # minimum weekly rows before an hourly HAR model forecasts (controller ruling 2026-11-27)
 
 # --- Model settings (frozen later) ---
 PHI_SWITCHING: bool | None = False          # DECIDED 2026-11-27 in notebook 03 (user-approved): LR test of
                                             # phi_N = phi_H in M1 on 2005-2018, p = 0.846 >= 0.05 -> one shared phi
                                             # (results/frozen/rq1_decision.json). Frozen for all later models.
 M3_VARIANT = "constrained"                  # or "iran_both_logits" (notebook 05 validation)
-SPEC_FROZEN = False                         # True after notebook 05 validation stage
+SPEC_FROZEN = True                          # FROZEN 2026-11-27 after notebook 05's validation stage (user-approved):
+                                            # 313 validation weeks, all converged, 0 degenerate, M3 0% unstable ->
+                                            # constrained kept; no setting changed. Nothing above may change after this.
 SEARCH_REPS_FIRST = 30
 N_RESTARTS = 3
 RESTART_EVERY = 13
 SIGMA2_RATIO_MIN = 1.5
 VAR_FLOOR_FRAC = 0.05
 MIN_DURATION = 2.0
+MAX_TVTP_COEF = 50                          # |TVTP coefficient| above this = near-separation, treated as degenerate (user decision 2026-11-27)
+CONTROLS_ONLY_NH = True                     # TVTP controls enter only the calm->turbulent logit; their H->N coefficients are fixed at 0 (user decision 2026-11-27)
 
 # --- Robustness (Plan 3) ---
 ROBUST_OOS_TARGETS = ("2019-01-04", "2025-12-26")

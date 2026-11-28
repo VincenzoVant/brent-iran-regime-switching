@@ -1,0 +1,33 @@
+{
+  "phi_switching": false,
+  "SEARCH_REPS_FIRST": 30,
+  "N_RESTARTS": 3,
+  "RESTART_EVERY": 13,
+  "SIGMA2_RATIO_MIN": 1.5,
+  "VAR_FLOOR_FRAC": 0.05,
+  "MIN_DURATION": 2.0,
+  "MAX_TVTP_COEF": 50,
+  "CONTROLS_ONLY_NH": true,
+  "M3_VARIANT": "constrained",
+  "INTRADAY_ROLL_RULE": {
+    "kind": "gap",
+    "max_gap_hours": 84
+  },
+  "INTRADAY_REDISTRIBUTE": false,
+  "HOURLY_SAMPLE_START": "2013-06-07",
+  "MAIN_RV": "rv_hourly",
+  "X_RV_COL": "rv_hourly",
+  "X_SAMPLE_START": "2013-06-07",
+  "BENCHMARKS_MAIN": [
+    "GARCH_t",
+    "HAR",
+    "RW",
+    "HAR_h",
+    "HARX_C",
+    "HARX_CI",
+    "GARCHX_C",
+    "GARCHX_CI"
+  ],
+  "settings_hash": "d529415f6ba85431",
+  "git_hash": "b6ef137"
+}

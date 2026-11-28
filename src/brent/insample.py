@@ -185,24 +185,29 @@ def fit_tone(panel, end, phi_switching: bool, ladder: dict, n_restarts: int = 0,
 
 
 def coef_table(fit, label: str) -> pd.DataFrame:
-    """One row per transition coefficient in deck signs, with SEs from the numerical Hessian."""
-    cols = ["model", "logit", "var", "coef", "se", "z", "p", "fixed"]
+    """One row per transition coefficient in deck signs, with SEs from the numerical Hessian.
+
+    cap_note: "at the +-<cap> cap (SE n/a)" for a slope at the bounded-MLE cap C.MAX_TVTP_COEF, else "".
+    """
+    cols = ["model", "logit", "var", "coef", "se", "z", "p", "fixed", "cap_note"]
     tv = list(getattr(fit.model, "tvtp_name_map", {}) or {})
     if not tv:
         return pd.DataFrame(columns=cols)
     cov = ms.param_cov(fit.model, fit.params, fit.fixed)
+    capped = set(ms.at_cap(fit.params))
+    note = f"at the \u00b1{C.MAX_TVTP_COEF:g} cap (SE n/a)"
     rows = []
     for logit, stem, sign in (("N->H", "p[0->0]", -1.0), ("H->N", "p[1->0]", 1.0)):
         for j, v in enumerate(tv):
             n = f"{stem}.tvtp{j}"
             if n in fit.fixed:
-                rows.append([label, logit, v, 0.0, NAN, NAN, NAN, True])
+                rows.append([label, logit, v, 0.0, NAN, NAN, NAN, True, ""])
                 continue
             se = float(np.sqrt(cov.loc[n, n])) if n in cov.index else NAN
             coef = sign * float(fit.params[n])
             z = coef / se if np.isfinite(se) and se > 0 else NAN
             p = float(2 * norm.sf(abs(z))) if np.isfinite(z) else NAN
-            rows.append([label, logit, v, coef, se, z, p, False])
+            rows.append([label, logit, v, coef, se, z, p, False, note if n in capped else ""])
     return pd.DataFrame(rows, columns=cols)
 
 

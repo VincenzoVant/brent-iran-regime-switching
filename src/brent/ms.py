@@ -28,19 +28,22 @@ class MSSpec:
     canonical_by: str = "sigma2"
     std_window: tuple[str, str] = field(default_factory=lambda: C.STANDARDIZE_WINDOW)
     start: str = field(default_factory=lambda: C.SAMPLE_START)
+    controls_only_NH: bool = field(default_factory=lambda: C.CONTROLS_ONLY_NH)
 
 
 def make_specs(phi_switching: bool, variant: str | None = None,
                controls: tuple[str, ...] | None = None,
-               iran_var: str | None = None) -> dict[str, MSSpec]:
+               iran_var: str | None = None, controls_only_NH: bool | None = None) -> dict[str, MSSpec]:
     """The ladder M1 (constant TP), M2 (controls), M3 (controls + Iran); None means the config value now."""
     variant = C.M3_VARIANT if variant is None else variant
     controls = tuple(C.TVTP_CONTROLS if controls is None else controls)
     iran_var = C.IRAN_VAR if iran_var is None else iran_var
+    co = C.CONTROLS_ONLY_NH if controls_only_NH is None else controls_only_NH
     return {
-        "M1": MSSpec("M1", (), (), False, phi_switching),
-        "M2": MSSpec("M2", controls, (), False, phi_switching),
-        "M3": MSSpec("M3", controls + (iran_var,), (iran_var,), variant == "constrained", phi_switching),
+        "M1": MSSpec("M1", (), (), False, phi_switching, controls_only_NH=co),
+        "M2": MSSpec("M2", controls, (), False, phi_switching, controls_only_NH=co),
+        "M3": MSSpec("M3", controls + (iran_var,), (iran_var,), variant == "constrained", phi_switching,
+                     controls_only_NH=co),
     }
 
 
@@ -158,10 +161,15 @@ def expected_durations(params, model, exog_tvtp=None) -> dict[str, float]:
 
 
 def constraint_info(spec: MSSpec, model) -> dict:
-    """Fixed parameters (Iran only moves N->H) and the Iran beta parameter names."""
+    """Fixed H->N coefficients (controls if controls_only_NH, Iran if iran_only_NH) and the Iran beta names."""
     fixed, beta = {}, {}
+    tmap = getattr(model, "tvtp_name_map", None) or {}
+    if spec.controls_only_NH:
+        for v in spec.tvtp_vars:
+            if v not in spec.iran_vars:
+                fixed[f"p[1->0].tvtp{tmap[v]}"] = 0.0
     for v in spec.iran_vars:
-        j = model.tvtp_name_map[v]
+        j = tmap[v]
         beta[v] = f"p[0->0].tvtp{j}"
         if spec.iran_only_NH:
             fixed[f"p[1->0].tvtp{j}"] = 0.0
@@ -186,12 +194,17 @@ class MSFit:
     n_warnings: int = 0
 
 
-def is_degenerate(params, model, var_y: float, floor_frac=None, min_duration=None) -> bool:
-    """True if min sigma2 < floor_frac * var_y or a regime's expected duration < min_duration."""
+def is_degenerate(params, model, var_y: float, floor_frac=None, min_duration=None, max_coef=None) -> bool:
+    """True if min sigma2 < floor_frac * var_y, a regime's expected duration < min_duration,
+    or any TVTP coefficient has |value| > max_coef (near-separation)."""
     floor_frac = C.VAR_FLOOR_FRAC if floor_frac is None else floor_frac
     min_duration = C.MIN_DURATION if min_duration is None else min_duration
+    max_coef = C.MAX_TVTP_COEF if max_coef is None else max_coef
     p = pd.Series(np.asarray(params, dtype=float), index=list(model.param_names))
     if min(p["sigma2[0]"], p["sigma2[1]"]) < floor_frac * var_y:
+        return True
+    tv = p[[n for n in p.index if ".tvtp" in n]]
+    if len(tv) and not (tv.abs() <= max_coef + 1e-9).all():             # at the cap is not degenerate
         return True
     try:
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -201,10 +214,22 @@ def is_degenerate(params, model, var_y: float, floor_frac=None, min_duration=Non
     return not all(np.isfinite(d) or d > 0 for d in dur.values()) or min(dur.values()) < min_duration
 
 
+def _slope_names(model) -> list[str]:
+    """TVTP slope parameters (".tvtpJ", J >= 1); the logit constants ".tvtp0" are not slopes."""
+    return [n for n in model.param_names if ".tvtp" in n and not n.endswith(".tvtp0")]
+
+
+def at_cap(params: pd.Series, tol: float = 1e-6) -> list[str]:
+    """Names of TVTP slopes at the +-C.MAX_TVTP_COEF cap (|coef| >= cap - tol)."""
+    cap = C.MAX_TVTP_COEF
+    return [n for n, v in params.items() if ".tvtp" in n and not n.endswith(".tvtp0") and abs(v) >= cap - tol]
+
+
 def pick_best(fits: list):
-    """Best loglike among non-degenerate fits; if all are degenerate, the best loglike overall."""
+    """Among non-degenerate fits (or all, if every fit is degenerate): converged first, then highest loglike."""
     ok = [f for f in fits if not f.degenerate]
-    return max(ok or fits, key=lambda f: f.loglike if np.isfinite(f.loglike) else -np.inf)
+    return max(ok or fits, key=lambda f: (bool(getattr(f, "converged", True)),
+                                          f.loglike if np.isfinite(f.loglike) else -np.inf))
 
 
 def _fit_once(model, spec, start, search_reps, seed):
@@ -231,13 +256,20 @@ def fit_model(model, spec: MSSpec, start_params, search_reps: int, n_restarts: i
               extra_starts=()) -> MSFit:
     """Fit a built model: main fit, extra starts, then perturbed restarts; keep the best non-degenerate.
 
-    Restricted specs (Iran only in N->H) take the constrained path. n_warnings aggregates over all
-    candidates; a candidate whose fit raises counts as one warning.
+    Specs with fixed coefficients (controls and/or Iran only in N->H) or TVTP slopes take the constrained,
+    bounded path (slopes capped at +-C.MAX_TVTP_COEF). n_warnings aggregates over all candidates; a candidate
+    whose fit raises counts as one warning.
     """
-    info = constraint_info(spec, model) if (spec.iran_vars and spec.iran_only_NH and spec.kind == "msar") else None
-    if info is not None:
+    info = constraint_info(spec, model) if spec.kind == "msar" else None
+    if info is not None and (info["fixed"] or _slope_names(model)):
         return _fit_restricted(model, spec, info["fixed"], start_params, search_reps, n_restarts, seed,
                                extra_starts)
+    return _fit_free(model, spec, start_params, search_reps, n_restarts, seed, extra_starts)
+
+
+def _fit_free(model, spec: MSSpec, start_params, search_reps: int, n_restarts: int, seed: int,
+              extra_starts=()) -> MSFit:
+    """Unbounded statsmodels fit (no fixed coefficients); used directly for M1 and as a start elsewhere."""
     t0 = time.perf_counter()
     var_y = float(np.asarray(model.endog).var())
     names = list(model.param_names)
@@ -287,10 +319,19 @@ def _full_params(model, u_free, free_idx, base_u, fixed_idx, fixed_vals):
     return model.transform_params(u)
 
 
-def fit_constrained(model, start_params: pd.Series, fixed: dict, n_restarts: int, seed: int):
-    """Maximize the loglike over the free parameters with `fixed` held exactly.
+class _Counted(tuple):
+    """(params, loglike, converged) that also carries n_warnings as an attribute."""
 
-    Returns (params incl. fixed values, loglike, converged); BFGS, then Nelder-Mead if BFGS fails.
+    n_warnings = 0
+
+
+def fit_constrained(model, start_params: pd.Series, fixed: dict, n_restarts: int, seed: int):
+    """Maximize the loglike over the free parameters with `fixed` held exactly and every free TVTP slope
+    bounded to [-C.MAX_TVTP_COEF, +C.MAX_TVTP_COEF] (bounded MLE against near-separation).
+
+    Returns (params incl. fixed values, loglike, converged); L-BFGS-B, then bounded Nelder-Mead if it fails.
+    Starts (and restart perturbations) are clipped into the bounds first.
+    The tuple's `n_warnings` counts runs that hit the penalty, failed, or flipped and were dropped.
     """
     names = list(model.param_names)
     fixed_idx = np.array([names.index(n) for n in fixed], dtype=int)
@@ -298,10 +339,20 @@ def fit_constrained(model, start_params: pd.Series, fixed: dict, n_restarts: int
     free_idx = np.array([i for i in range(len(names)) if i not in set(fixed_idx)], dtype=int)
     n_obs = len(model.endog)
     var_y = float(np.asarray(model.endog).var())
-    u_start = np.asarray(model.untransform_params(np.asarray(start_params.reindex(names), dtype=float)), float)
+    cap = float(C.MAX_TVTP_COEF)
+    slopes = set(_slope_names(model))
+    sp = start_params.reindex(names).astype(float).copy()
+    sp[[n for n in names if n in slopes]] = sp[[n for n in names if n in slopes]].clip(-cap, cap)
+    u_start = np.asarray(model.untransform_params(np.asarray(sp, dtype=float)), float)
+    # TVTP coefficients are not transformed by statsmodels, so the bounds apply to them directly
+    lo = np.array([-cap if names[i] in slopes else -np.inf for i in free_idx])
+    hi = np.array([cap if names[i] in slopes else np.inf for i in free_idx])
+    bounds = [(None if not np.isfinite(a) else a, None if not np.isfinite(b) else b) for a, b in zip(lo, hi)]
 
     def build(uf):
         return _full_params(model, uf, free_idx, u_start, fixed_idx, fixed_vals)
+
+    hits = [0]                                   # penalty evaluations in the current run
 
     def neg(uf):
         with warnings.catch_warnings(), np.errstate(all="ignore"):
@@ -309,27 +360,36 @@ def fit_constrained(model, start_params: pd.Series, fixed: dict, n_restarts: int
             try:
                 v = -model.loglike(build(uf)) / n_obs
             except (np.linalg.LinAlgError, ValueError, FloatingPointError):
-                return 1e10
-        return v if np.isfinite(v) else 1e10
+                v = np.nan
+        if not np.isfinite(v):
+            hits[0] += 1
+            return 1e10
+        return v
 
     def run(uf0):
+        hits[0] = 0
+        uf0 = np.clip(uf0, lo, hi)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            r = minimize(neg, uf0, method="BFGS", options={"maxiter": 200})
+            r = minimize(neg, uf0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 500})
             ok = bool(r.success)
             if not ok:
-                r = minimize(neg, r.x, method="Nelder-Mead", options={"maxiter": 4000, "maxfev": 4000,
-                                                                     "xatol": 1e-6, "fatol": 1e-10})
+                r = minimize(neg, np.clip(r.x, lo, hi), method="Nelder-Mead", bounds=bounds,
+                             options={"maxiter": 4000, "maxfev": 4000, "xatol": 1e-6, "fatol": 1e-10})
                 ok = bool(r.success)
-        p = pd.Series(build(r.x), index=names)
+        p = pd.Series(build(np.clip(r.x, lo, hi)), index=names)
         p[list(fixed)] = fixed_vals
-        return p, float(model.loglike(p.values)), ok
+        return p, float(model.loglike(p.values)), ok, hits[0] > 0
 
     starts = [u_start[free_idx]] + [u_start[free_idx] + np.random.default_rng(seed + k).normal(0, 0.5, len(free_idx))
                                     for k in range(1, n_restarts + 1)]
     res = [run(u0) for u0 in starts]
-    return max(res, key=lambda r: (r[0]["sigma2[0]"] <= r[0]["sigma2[1]"], not is_degenerate(r[0], model, var_y),
+    best = max(res, key=lambda r: (r[0]["sigma2[0]"] <= r[0]["sigma2[1]"], not is_degenerate(r[0], model, var_y),
                                    r[1] if np.isfinite(r[1]) else -np.inf))
+    out = _Counted(best[:3])
+    out.n_warnings = sum(int(r[3]) + int(not r[2]) + int(r is not best and r[0]["sigma2[0]"] > r[0]["sigma2[1]"])
+                         for r in res)
+    return out
 
 
 def _fit_restricted(model, spec, fixed, start_params, search_reps, n_restarts, seed, extra_starts):
@@ -342,15 +402,25 @@ def _fit_restricted(model, spec, fixed, start_params, search_reps, n_restarts, s
         return MSFit(spec, params, float(ll), ok, n_restarts, False, refit, is_degenerate(params, model, var_y),
                      time.perf_counter() - t0, model, dict(fixed), nw)
 
+    nw_warm = 0
     if start_params is not None:
-        params, ll, ok = fit_constrained(model, start_params.reindex(names), fixed, n_restarts, seed)
-        if params["sigma2[0]"] <= params["sigma2[1]"]:
-            return finish(params, ll, ok, False, 0)
-    base = fit_model(model, replace(spec, iran_only_NH=False), None, search_reps, 0, seed)
+        # warm start plus any extra starts (e.g. the nesting start on a "nesting" restart in the OOS loop)
+        warm = [fit_constrained(model, start_params.reindex(names), fixed, n_restarts, seed)]
+        warm += [fit_constrained(model, s.reindex(names), fixed, 0, seed) for s in extra_starts]
+        good_w = [c for c in warm if c[0]["sigma2[0]"] <= c[0]["sigma2[1]"]]
+        nw_warm = sum(getattr(c, "n_warnings", 0) for c in warm) + len(warm) - len(good_w)
+        if good_w:
+            ok_w = [c for c in good_w if not is_degenerate(c[0], model, var_y)]
+            params, ll, ok = max(ok_w or good_w, key=lambda c: c[1] if np.isfinite(c[1]) else -np.inf)
+            return finish(params, ll, ok, False, nw_warm)
+        # every warm result flipped: dropped, refit from scratch (flips already counted in nw_warm)
+    # unbounded statsmodels search, used only as a start (fit_constrained clips its slopes into the bounds)
+    base = _fit_free(model, replace(spec, iran_only_NH=False, controls_only_NH=False), None, search_reps, 0, seed)
     starts = [base.params] + [s.reindex(names) for s in extra_starts]
     cands = [fit_constrained(model, st, fixed, n_restarts, seed) for st in starts]
     good = [c for c in cands if c[0]["sigma2[0]"] <= c[0]["sigma2[1]"]]
-    nw = base.n_warnings + len(cands) - len(good)
+    nw = (nw_warm + base.n_warnings + sum(getattr(c, "n_warnings", 0) for c in cands)
+          + len(cands) - len(good))
     if good:
         ok_c = [c for c in good if not is_degenerate(c[0], model, var_y)]
         params, ll, ok = max(ok_c or good, key=lambda c: c[1])
@@ -358,9 +428,11 @@ def _fit_restricted(model, spec, fixed, start_params, search_reps, n_restarts, s
     # every candidate flipped: fall back to a canonical, constraint-satisfying point, flagged as failed
     fallbacks = ([start_params.reindex(names)] if start_params is not None else []) \
         + [s.reindex(names) for s in extra_starts] + [base.params]
+    sl = _slope_names(model)
     for fb in fallbacks:
         p = fb.copy()
         p[list(fixed)] = list(fixed.values())
+        p[sl] = p[sl].clip(-C.MAX_TVTP_COEF, C.MAX_TVTP_COEF)
         if p["sigma2[0]"] <= p["sigma2[1]"]:
             break
     fit = finish(p, model.loglike(p.values), False, start_params is not None, nw + 1)
@@ -369,10 +441,15 @@ def _fit_restricted(model, spec, fixed, start_params, search_reps, n_restarts, s
 
 
 def param_cov(model, params: pd.Series, fixed: dict) -> pd.DataFrame:
-    """Covariance of the free parameters, inv(-Hessian of the loglike); NaN where it cannot be computed."""
+    """Covariance of the free parameters, inv(-Hessian of the loglike); NaN where it cannot be computed.
+
+    Slopes at the +-MAX_TVTP_COEF cap get NaN (a bound, like garchx_se); the Hessian uses the other free params.
+    """
     names = [n for n in params.index if n not in fixed]
     k = len(names)
     nan = pd.DataFrame(np.full((k, k), np.nan), index=names, columns=names)
+    capped = set(at_cap(params))
+    out_names, names = names, [n for n in names if n not in capped]
     base = params.copy()
 
     def ll(theta):
@@ -398,7 +475,7 @@ def param_cov(model, params: pd.Series, fixed: dict) -> pd.DataFrame:
     bad = ~(np.diag(cov) > 0)
     cov[bad, :] = np.nan
     cov[:, bad] = np.nan
-    return pd.DataFrame(cov, index=names, columns=names)
+    return pd.DataFrame(cov, index=names, columns=names).reindex(index=out_names, columns=out_names)
 
 
 def fit_ms(design, spec: MSSpec, start_params, search_reps: int, n_restarts: int, seed: int,
@@ -421,6 +498,9 @@ def nest_start(small: MSFit, big_model, big_spec: MSSpec) -> pd.Series:
             out[n] = logit(sm_vals[r[:3]])
         elif r in ("phi_N", "phi_H") and "phi" in sm_vals:
             out[n] = sm_vals["phi"]
+    if big_spec.kind == "msar" and getattr(big_model, "tvtp_name_map", None):
+        for n, v in constraint_info(big_spec, big_model)["fixed"].items():
+            out[n] = v                                   # the start satisfies the big model's constraints
     return out
 
 

@@ -16,6 +16,12 @@
   - (4) After Q1: the Jan 1–5, 2020 "stale" rows are current news with a broken `SQLDATE` (the normal feed nearly vanishes those days, and Jan 3 holds 348k Iran articles), so `GDELT_STALE_POLICY = "merge"`: stale rows count as daily feed. This supersedes "drops" in (2).
   - (5) GDELT 1.0 has no rows Jun 14 – Jul 1, 2025 (Israel–Iran war): those days are filled from GDELT 2.0 (`gdelt_v2_2025_daily.csv`), level-shifted on the other 2025 weeks with the §6.4 overlap rule (correlation ≥ 0.8), using `GDELT_V2_PATCH_DAYS`. The general 2.0 splice is still not needed.
   - (6) GDELT 2.0 is also empty Jun 15 – Jul 1, 2025 (it only fills Jun 14; overlap correlation 0.934, shift −0.109). The week ending 2025-06-27 has no GDELT day: `GDELT_EMPTY_WEEK_POLICY = "locf"` carries the previous week's GDELT values forward (no look-ahead; interpolation was rejected as look-ahead), flagged by the new panel column `gdelt_filled`. More than `GDELT_MAX_EMPTY_WEEKS = 1` consecutive empty weeks raise.
+- **2026-11-27 (notebooks 02–05) [decided]:**
+  - (7) `HOURLY_SAMPLE_START = 2013-06-07` and `STANDARDIZE_WINDOW_HOURLY = (2013-06-07, 2015-06-05)`: Dukascopy is unreliable Jan 2012 – May 2013 (stale quotes, holes). Supersedes the hourly dates in (1).
+  - (8) Notebook 03: `PHI_SWITCHING = False` (LR test of φ_N = φ_H on 2005–2018, p = 0.846).
+  - (9) Near-separation counts as degenerate: `MAX_TVTP_COEF = 50`; a fit with any |TVTP coefficient| above it is degenerate under §8.4's rule (every fit).
+  - (10) `CONTROLS_ONLY_NH = True`: the TVTP controls (gpr, vix, log_rv) enter only the calm→turbulent logit; their turbulent→calm coefficients are fixed at 0 (the turbulent→calm logit keeps its constant). Reason: with expanding windows the turbulent→calm logit was near-separated at 3 of 6 checked sample ends (|coef| 89–562); the restriction removes it everywhere at a log-likelihood cost of 2–5. RQ2's test (M3 vs M2, df 1) is unchanged in meaning; M2 vs M1 now has df 3. Supersedes the "both logits" wording of §7.1 for the controls.
+  - (11) Hourly benchmarks start when their data allows, without look-ahead: HAR_h/HARX_* from 2013-09-06 (13 weeks of hourly history), GARCHX_* from 2015-06-05 (end of the scale window). Model comparisons in notebook 06 use common weeks.
 - 2026-11-20: approved.
 
 ---

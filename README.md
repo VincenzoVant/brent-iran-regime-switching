@@ -26,3 +26,13 @@ uv run pytest                             # all tests should pass before any not
   - **One exception:** the Dukascopy intraday files (`data/raw/brent_intraday_*.csv`) are not committed. Before notebook 02, run `uv sync --group intraday`, then run section 5 of notebook 01 (a few minutes, no account needed). The committed `weekly_panel.csv` already contains the weekly hourly-RV columns, so notebooks 03–08 do not need this step.
 
 Code lives in `src/brent/` (`config.py` holds every constant and decision). Notebooks are in `notebooks/`.
+
+## Notebook 05: running the forecasts
+
+`notebooks/05_oos_forecasts.ipynb` runs the expanding-window out-of-sample forecasts in four stages, chosen with the environment variable `BRENT_STAGE` (`timing` by default, then `validation`, `freeze`, `full`; `all` only re-displays saved results).
+
+- Start a long stage from a terminal, e.g. `BRENT_STAGE=full uv run jupyter nbconvert --to notebook --execute --inplace notebooks/05_oos_forecasts.ipynb`.
+- The run saves after every week in `results/checkpoints/` (git-ignored). If it is interrupted, run the same command again: it resumes. If a setting in `config.py` changed, the saved checkpoint is ignored and the run starts over.
+- The full run takes about 10–20 minutes (validation about 2–4 minutes). `results/forecasts/forecasts_main.csv`, `results/fits/params_main.csv` and `results/fits/fitlog_main.csv` are committed.
+- With `FORCE_OOS = False` the notebook loads these committed files and skips the run, then runs the checks.
+- Settings (`N_RESTARTS`, `RESTART_EVERY`, `M3_VARIANT`, `SPEC_FROZEN`, ...) are changed by hand in `config.py`; the notebook only tells you which line to set.
