@@ -1,0 +1,5 @@
+test,model_restricted,model_full,lr_raw,stat,df,pvalue,negative,k_restricted,k_full,coef,se,note
+M2_vs_M1,M1,M2,14.610238208169903,14.610238208169903,6.0,0.02351473103634666,False,7.0,13.0,,,chi2(df) LR test
+M3_vs_M2,M2,M3,0.5081059973535957,0.5081059973535957,1.0,0.47595990675536115,False,13.0,14.0,,,chi2(df) LR test
+M3tone_vs_M2,M2,M3tone,0.6631948554968403,0.6631948554968403,2.0,0.71777622148887,False,13.0,15.0,,,chi2(df) LR test
+beta_iran_gdelt_z,,M3,,0.7475279805911622,,0.4547449194036731,,,,0.20168674655760166,0.26980494616148437,"z = beta/SE, two-sided normal p (deck sign, N->H)"

@@ -1,0 +1,12 @@
+item,value,se,stat,df,pvalue,note
+beta_iran_conflict,0.27283252404995817,0.5184887413972205,0.5262072293310182,,0.5987442316103228,"deck sign, N->H; z-test"
+beta_iran_coop,-0.10977658787553018,0.6699789632109787,-0.1638507981644808,,0.8698486008766717,"deck sign, N->H; z-test"
+lr_M3tone_vs_M2,0.6631948554968403,,0.6631948554968403,2.0,0.71777622148887,"chi2(df) LR, df from free parameters"
+wald_conflict_eq_coop,0.38260911192548835,1.1544770169948753,0.10983481787369813,1.0,0.740332271692683,chi2(1) Wald of beta_conflict = beta_coop; value = beta_conflict - beta_coop
+loglike_M3tone,-3200.7955395663002,,,,,non-nested with M3: descriptive
+loglike_M3,-3200.873083995372,,,,,non-nested with M3tone: descriptive
+bic_M3tone,6506.5550188773295,,,,,non-nested with M3: descriptive
+bic_M3,6499.712511752491,,,,,non-nested with M3tone: descriptive
+aic_M3tone,6431.5910791326005,,,,,non-nested with M3: descriptive
+aic_M3,6429.746167990744,,,,,non-nested with M3tone: descriptive
+corr_iran_conflict_iran_coop,0.809495756064211,,,,,"weekly levels, 2005-2025"

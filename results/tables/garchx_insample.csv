@@ -1,0 +1,14 @@
+model,term,value,se,note
+GARCH_t (SLSQP fit on the X sample),loglike,-1924.4239929393457,,
+GARCHX_C,loglike,-1905.7465333015214,,
+GARCHX_C,gamma_rv_hourly,0.5650316309210772,0.14802610378233996,Hessian SE (unreliable near the gamma >= 0 bound)
+GARCHX_C,gamma_gpr,0.0,,SE n/a: gamma at the gamma >= 0 bound
+GARCHX_C,gamma_vix,1.4909905093960578,1.1255660923036381,Hessian SE (unreliable near the gamma >= 0 bound)
+GARCHX_C,lr_vs_GARCH_t,37.354919275648626,,LL refit of GARCH_t in this test: -1924.424
+GARCHX_C,k,3.0,,added gammas
+GARCHX_C,pvalue_chibar,8.108400351615537e-09,,"chi-bar-squared, k = 3"
+GARCHX_CI,loglike,-1905.7465333040022,,
+GARCHX_CI,gamma_iran_gdelt,1.5432722965937734e-17,,SE n/a: gamma at the gamma >= 0 bound
+GARCHX_CI,lr_vs_GARCHX_C,1.0627445590216666e-09,,LL refit of GARCHX_C in this test: -1905.747
+GARCHX_CI,k,1.0,,added gammas
+GARCHX_CI,pvalue_chibar,0.499986994576141,,"chi-bar-squared, k = 1"

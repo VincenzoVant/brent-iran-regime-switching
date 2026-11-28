@@ -98,7 +98,9 @@ X_SAMPLE_START = HOURLY_SAMPLE_START        # SAMPLE_START in that fallback
 GARCHX_SCALE_WINDOW = STANDARDIZE_WINDOW_HOURLY
 
 # --- Model settings (frozen later) ---
-PHI_SWITCHING: bool | None = None           # set from notebook 03, then frozen
+PHI_SWITCHING: bool | None = False          # DECIDED 2026-11-27 in notebook 03 (user-approved): LR test of
+                                            # phi_N = phi_H in M1 on 2005-2018, p = 0.846 >= 0.05 -> one shared phi
+                                            # (results/frozen/rq1_decision.json). Frozen for all later models.
 M3_VARIANT = "constrained"                  # or "iran_both_logits" (notebook 05 validation)
 SPEC_FROZEN = False                         # True after notebook 05 validation stage
 SEARCH_REPS_FIRST = 30

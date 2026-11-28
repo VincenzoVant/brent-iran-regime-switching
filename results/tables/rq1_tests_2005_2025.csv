@@ -1,0 +1,11 @@
+test,stat,df,pvalue,note,sample_end
+1v2_lr,231.64710296475823,5.0,,non-standard: chi2 p not valid (use the bootstrap),2025-12-26
+1v2_bootstrap,,,,not run (RUN_BOOT_2025 = False),2025-12-26
+bic_one,6667.412339363347,,,"LL -3323.210, k 3, n 1094",2025-12-26
+bic_two,6470.753216313498,,,"LL -3207.386, k 8, n 1094",2025-12-26
+mu_equal,4.266040456724113,1.0,0.038881431453740845,"N 0.330, H -1.213; Wald 4.173 p 0.041; lr_raw 4.266",2025-12-26
+phi_equal,2.092065150457529,1.0,0.14806579862932617,"N 0.018, H 0.149; Wald 2.037 p 0.154; lr_raw 2.092",2025-12-26
+dur_N,58.99495554380893,,,expected weeks per visit,2025-12-26
+dur_H,11.745812446797656,,,expected weeks per visit,2025-12-26
+weeks_N,959.0,,,filtered P(H) <= 0.5,2025-12-26
+weeks_H,135.0,,,filtered P(H) > 0.5,2025-12-26
