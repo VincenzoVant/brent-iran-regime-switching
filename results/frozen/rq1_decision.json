@@ -1,0 +1,9 @@
+{
+  "phi_switching": false,
+  "lr_stat": 0.03754119138375245,
+  "p_value": 0.8463673373172655,
+  "df": 1,
+  "sample_end": "2018-12-28",
+  "git_hash": "f11da5b",
+  "rule": "phi_switching = (LR p-value of phi_N = phi_H in M1 on 2005-2018) < 0.05"
+}

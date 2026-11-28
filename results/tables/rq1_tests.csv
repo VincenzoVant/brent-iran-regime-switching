@@ -1,0 +1,7 @@
+test,stat,df,pvalue,note
+1v2_lr,105.6224710856095,5.0,3.444299978342985e-21,"naive chi2(5) p, NOT valid (regime-2 parameters unidentified under one regime); use 1v2_bootstrap"
+1v2_bootstrap,105.6224710856086,,0.005,"parametric bootstrap, B=199 (valid 199, failed 0), n_degenerate=174"
+bic_one,4308.975583281991,3.0,,"BIC, one-regime Gaussian AR(1); df = free parameters"
+bic_two,4236.311480856425,8.0,,"BIC, M1 (mu, phi, sigma2 switching); df = free parameters"
+mu_equal,7.6591874249897955,1.0,0.005648393855391845,"LR chi2(1); Wald=5.419, p_wald=0.0199; est_N=0.4159, est_H=-1.7558"
+phi_equal,0.03754119138375245,1.0,0.8463673373172655,"LR chi2(1); Wald=0.037, p_wald=0.8480; est_N=0.0449, est_H=0.0228; decision phi_switching=False"
